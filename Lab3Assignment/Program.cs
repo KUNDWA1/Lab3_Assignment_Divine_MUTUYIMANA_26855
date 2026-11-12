@@ -1,8 +1,9 @@
+using EventConnect;
+using Lab3Assignment.Views; // Changed from EventConnect to Lab3Assignment
 using System;
 using System.Windows.Forms;
-using EventConnect.Views;
 
-namespace EventConnect
+namespace Lab3Assignment // Changed from EventConnect to Lab3Assignment
 {
     static class Program
     {
@@ -10,7 +11,7 @@ namespace EventConnect
         static void Main()
         {
             ApplicationConfiguration.Initialize();
-            Application.Run(new LoginForm());
+            Application.Run(new LoginForm()); // Starts the app
         }
     }
 }
