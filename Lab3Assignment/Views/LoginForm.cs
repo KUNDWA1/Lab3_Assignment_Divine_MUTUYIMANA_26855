@@ -9,218 +9,404 @@ namespace Lab3Assignment.Views
     {
         DatabaseController db = new DatabaseController();
 
-        // Form Elements
-        Panel loginPanel, signupPanel;
-        Label lblSwitchToSignup, lblSwitchToLogin;
+        static readonly Color Indigo = Color.FromArgb(61, 76, 155);
+        static readonly Color IndigoDark = Color.FromArgb(48, 60, 128);
+        static readonly Color Amber = Color.FromArgb(255, 193, 7);
+        static readonly Color PageGray = Color.FromArgb(244, 246, 249);
+        static readonly Color BorderGray = Color.FromArgb(222, 226, 234);
+        static readonly Color SoftWhite = Color.FromArgb(205, 212, 240);
 
-        // Login Inputs
+        const int FieldWidth = 380;   // width of inputs and buttons inside the cards
+
+        Panel rightPanel;
+        FlowLayoutPanel loginPanel, signupPanel;
+
+        // Login inputs
         TextBox txtLoginEmail, txtLoginPassword;
+        Button btnLogin;
 
-        // Signup Inputs
+        // Signup inputs
         TextBox txtSignName, txtSignEmail, txtSignPhone, txtSignPassword;
-        ComboBox cmbRole;
+        Button btnRoleVendor, btnRolePlanner, btnSignup;
         CheckBox chkTerms;
+        string selectedRole = "Vendor";
 
         public LoginForm()
         {
-            this.Text = "Event Connect";
-            this.Size = new Size(1100, 750);
+            this.Text = "EventKonnect";
+            this.Size = new Size(1100, 780);
+            this.MinimumSize = new Size(900, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.BackColor = Color.White;
+            this.BackColor = PageGray;
+            this.Font = new Font("Segoe UI", 10);
 
-            // ==========================================
-            // 1. TOP NAVIGATION BAR
-            // ==========================================
-            Panel navBar = new Panel() { Dock = DockStyle.Top, Height = 70, BackColor = Color.FromArgb(61, 76, 155) };
-            Label logo = new Label() { Text = "EventKonnect", ForeColor = Color.White, Font = new Font("Segoe UI", 18, FontStyle.Bold), Location = new Point(30, 20), AutoSize = true };
+            // Closing the login window closes the whole app
+            this.FormClosed += (s, e) => Application.Exit();
 
-            Label lblNavLogin = new Label() { Text = "Login", ForeColor = Color.White, Font = new Font("Segoe UI", 11), Location = new Point(850, 24), AutoSize = true, Cursor = Cursors.Hand };
-            lblNavLogin.Click += (s, e) => ShowLogin();
+            // IMPORTANT: the Fill panel must be added BEFORE the Left panel,
+            // otherwise it is drawn on top of it.
+            BuildRightPanel();
+            BuildLeftPanel();
 
-            Button btnGetStarted = new Button()
-            {
-                Text = "Get Started",
-                Location = new Point(930, 18),
-                Width = 130,
-                Height = 35,
-                BackColor = Color.FromArgb(255, 193, 7),
-                ForeColor = Color.Black,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
-            };
-            btnGetStarted.FlatAppearance.BorderSize = 0;
-            btnGetStarted.Click += (s, e) => ShowSignup();
-
-            navBar.Controls.Add(logo); navBar.Controls.Add(lblNavLogin); navBar.Controls.Add(btnGetStarted);
-
-            // ==========================================
-            // 2. LEFT PANEL (Branding & Stats)
-            // ==========================================
-            Panel leftPanel = new Panel() { Width = 500, Dock = DockStyle.Left, BackColor = Color.White };
-
-            Label lblWelcome = new Label() { Text = "Welcome to\nEventKonnect", Font = new Font("Segoe UI", 32, FontStyle.Bold), Location = new Point(50, 150), AutoSize = true };
-            Label lblSub = new Label() { Text = "Join thousands of event planners and vendors", Font = new Font("Segoe UI", 12), ForeColor = Color.Gray, Location = new Point(50, 240), AutoSize = true };
-
-            Label lblBullet1 = new Label() { Text = "✓  Connect with top vendors instantly", Font = new Font("Segoe UI", 11), ForeColor = Color.DimGray, Location = new Point(50, 310), AutoSize = true };
-            Label lblBullet2 = new Label() { Text = "✓  Plan events seamlessly from start to finish", Font = new Font("Segoe UI", 11), ForeColor = Color.DimGray, Location = new Point(50, 350), AutoSize = true };
-            Label lblBullet3 = new Label() { Text = "✓  Secure payments with escrow protection", Font = new Font("Segoe UI", 11), ForeColor = Color.DimGray, Location = new Point(50, 390), AutoSize = true };
-
-            Panel statsBox = new Panel() { Location = new Point(50, 460), Size = new Size(400, 80), BackColor = Color.FromArgb(248, 249, 250) };
-            statsBox.Controls.Add(CreateStat("500+", "Verified Vendors", 20));
-            statsBox.Controls.Add(CreateStat("1000+", "Events Planned", 150));
-            statsBox.Controls.Add(CreateStat("98%", "Satisfaction", 280));
-
-            leftPanel.Controls.Add(lblWelcome); leftPanel.Controls.Add(lblSub);
-            leftPanel.Controls.Add(lblBullet1); leftPanel.Controls.Add(lblBullet2); leftPanel.Controls.Add(lblBullet3);
-            leftPanel.Controls.Add(statsBox);
-
-            // ==========================================
-            // 3. RIGHT PANEL (The Form Cards)
-            // ==========================================
-            Panel rightPanel = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(244, 246, 249) };
-
-            // --- LOGIN CARD ---
-            loginPanel = new Panel() { Size = new Size(450, 380), BackColor = Color.White, Location = new Point(80, 80) };
-            Label lblLoginTitle = new Label() { Text = "Login", Font = new Font("Segoe UI", 24, FontStyle.Bold), Width = 450, TextAlign = ContentAlignment.MiddleCenter, Location = new Point(0, 30) };
-
-            txtLoginEmail = CreateTextBox("Email", new Point(50, 110));
-            txtLoginPassword = CreateTextBox("Password", new Point(50, 180), true);
-
-            Button btnLogin = new Button() { Text = "Login", Location = new Point(50, 260), Width = 350, Height = 45, BackColor = Color.FromArgb(61, 76, 155), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 12, FontStyle.Bold) };
-            btnLogin.FlatAppearance.BorderSize = 0;
-
-            lblSwitchToSignup = new Label() { Text = "Don't have an account? Sign Up", ForeColor = Color.FromArgb(61, 76, 155), Font = new Font("Segoe UI", 10, FontStyle.Underline), Width = 450, TextAlign = ContentAlignment.MiddleCenter, Location = new Point(0, 330), Cursor = Cursors.Hand };
-            lblSwitchToSignup.Click += (s, e) => ShowSignup();
-
-            loginPanel.Controls.Add(lblLoginTitle);
-            loginPanel.Controls.Add(txtLoginEmail); loginPanel.Controls.Add(txtLoginPassword);
-            loginPanel.Controls.Add(btnLogin); loginPanel.Controls.Add(lblSwitchToSignup);
-
-            // --- SIGNUP CARD ---
-            signupPanel = new Panel() { Size = new Size(450, 550), BackColor = Color.White, Location = new Point(80, 40), Visible = false };
-            Label lblSignupTitle = new Label() { Text = "Create Account", Font = new Font("Segoe UI", 24, FontStyle.Bold), Width = 450, TextAlign = ContentAlignment.MiddleCenter, Location = new Point(0, 20) };
-
-            cmbRole = new ComboBox() { Location = new Point(50, 80), Width = 350, Font = new Font("Segoe UI", 12), DropDownStyle = ComboBoxStyle.DropDownList };
-            cmbRole.Items.AddRange(new string[] { "Vendor", "Event Planner" });
-            cmbRole.SelectedIndex = 0;
-
-            txtSignName = CreateTextBox("Full Name", new Point(50, 130));
-            txtSignEmail = CreateTextBox("Email", new Point(50, 190));
-            txtSignPhone = CreateTextBox("Phone Number", new Point(50, 250));
-            txtSignPassword = CreateTextBox("Password", new Point(50, 310), true);
-
-            chkTerms = new CheckBox() { Text = "I agree to the Terms and Conditions", Font = new Font("Segoe UI", 9), Location = new Point(50, 360), Width = 350 };
-
-            Button btnSignup = new Button() { Text = "Sign Up", Location = new Point(50, 400), Width = 350, Height = 45, BackColor = Color.FromArgb(61, 76, 155), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 12, FontStyle.Bold) };
-            btnSignup.FlatAppearance.BorderSize = 0;
-
-            lblSwitchToLogin = new Label() { Text = "Already have an account? Login", ForeColor = Color.FromArgb(61, 76, 155), Font = new Font("Segoe UI", 10, FontStyle.Underline), Width = 450, TextAlign = ContentAlignment.MiddleCenter, Location = new Point(0, 470), Cursor = Cursors.Hand };
-            lblSwitchToLogin.Click += (s, e) => ShowLogin();
-
-            signupPanel.Controls.Add(lblSignupTitle); signupPanel.Controls.Add(cmbRole);
-            signupPanel.Controls.Add(txtSignName); signupPanel.Controls.Add(txtSignEmail); signupPanel.Controls.Add(txtSignPhone); signupPanel.Controls.Add(txtSignPassword);
-            signupPanel.Controls.Add(chkTerms); signupPanel.Controls.Add(btnSignup); signupPanel.Controls.Add(lblSwitchToLogin);
-
-            // Add both panels to the right side
-            rightPanel.Controls.Add(loginPanel);
-            rightPanel.Controls.Add(signupPanel);
-
-            // Add everything to form
-            this.Controls.Add(rightPanel);
-            this.Controls.Add(leftPanel);
-            this.Controls.Add(navBar);
-
-            // ==========================================
-            // 4. BUTTON LOGIC
-            // ==========================================
-
-            btnLogin.Click += (s, e) => {
-                if (string.IsNullOrWhiteSpace(txtLoginEmail.Text) || string.IsNullOrWhiteSpace(txtLoginPassword.Text))
-                {
-                    MessageBox.Show("Please fill in all fields.");
-                    return;
-                }
-                string? role = db.LoginUser(txtLoginEmail.Text, txtLoginPassword.Text);
-                if (role == "Vendor") { new VendorForm().Show(); this.Hide(); }
-                else if (role == "Event Planner") { new PlannerForm().Show(); this.Hide(); }
-                else { MessageBox.Show("Invalid email or password."); }
-            };
-
-            btnSignup.Click += (s, e) => {
-                if (!chkTerms.Checked)
-                {
-                    MessageBox.Show("You must agree to the Terms and Conditions.");
-                    return;
-                }
-                string selectedRole = cmbRole.SelectedItem?.ToString() ?? "Vendor";
-                bool success = db.RegisterUser(txtSignName.Text, txtSignEmail.Text, txtSignPhone.Text, txtSignPassword.Text, selectedRole);
-                if (success)
-                {
-                    MessageBox.Show("Account created! You can now login.");
-                    ShowLogin();
-                }
-                else { MessageBox.Show("Error: Email might already be in use."); }
-            };
-
-            // Start with Login
             ShowLogin();
         }
 
         // ==========================================
-        // UI SWITCH METHODS
+        // LEFT: BRANDING (flows top to bottom, so it adapts to text size)
         // ==========================================
+        private void BuildLeftPanel()
+        {
+            Panel leftPanel = new Panel() { Dock = DockStyle.Left, Width = 480, BackColor = Indigo };
+
+            FlowLayoutPanel content = new FlowLayoutPanel()
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                Padding = new Padding(48, 48, 24, 24),
+                BackColor = Indigo
+            };
+
+            content.Controls.Add(new Label() { Text = "EventKonnect", ForeColor = Color.White, Font = new Font("Segoe UI", 20, FontStyle.Bold), AutoSize = true, Margin = new Padding(0) });
+            content.Controls.Add(new Panel() { Size = new Size(48, 4), BackColor = Amber, Margin = new Padding(4, 8, 0, 0) });
+
+            content.Controls.Add(new Label()
+            {
+                Text = "Plan events." + Environment.NewLine + "Find vendors." + Environment.NewLine + "Get it done.",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 26, FontStyle.Bold),
+                AutoSize = true,
+                Margin = new Padding(0, 50, 0, 0)
+            });
+
+            content.Controls.Add(new Label()
+            {
+                Text = "One place for planners and vendors to connect.",
+                ForeColor = SoftWhite,
+                Font = new Font("Segoe UI", 11),
+                AutoSize = true,
+                MaximumSize = new Size(400, 0),     // wraps instead of being cut off
+                Margin = new Padding(3, 14, 0, 30)
+            });
+
+            content.Controls.Add(Bullet("Connect with top vendors instantly"));
+            content.Controls.Add(Bullet("Plan events from start to finish"));
+            content.Controls.Add(Bullet("Secure escrow payments"));
+
+            // Stats strip at the bottom
+            TableLayoutPanel stats = new TableLayoutPanel()
+            {
+                Dock = DockStyle.Bottom,
+                AutoSize = true,
+                ColumnCount = 3,
+                RowCount = 1,
+                BackColor = IndigoDark,
+                Padding = new Padding(48, 22, 16, 22)
+            };
+            for (int i = 0; i < 3; i++) stats.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f));
+            stats.Controls.Add(Stat("500+", "Verified vendors"), 0, 0);
+            stats.Controls.Add(Stat("1000+", "Events planned"), 1, 0);
+            stats.Controls.Add(Stat("98%", "Satisfaction"), 2, 0);
+
+            // Fill first, then the bottom strip
+            leftPanel.Controls.Add(content);
+            leftPanel.Controls.Add(stats);
+
+            this.Controls.Add(leftPanel);
+        }
+
+        private Label Bullet(string text)
+        {
+            return new Label()
+            {
+                Text = "✓   " + text,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 11),
+                AutoSize = true,
+                MaximumSize = new Size(400, 0),
+                Margin = new Padding(3, 0, 0, 12)
+            };
+        }
+
+        private Control Stat(string value, string label)
+        {
+            FlowLayoutPanel p = new FlowLayoutPanel() { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Margin = new Padding(0), BackColor = IndigoDark };
+            p.Controls.Add(new Label() { Text = value, ForeColor = Amber, Font = new Font("Segoe UI", 18, FontStyle.Bold), AutoSize = true, Margin = new Padding(0) });
+            p.Controls.Add(new Label() { Text = label, ForeColor = SoftWhite, Font = new Font("Segoe UI", 9), AutoSize = true, Margin = new Padding(2, 0, 0, 0) });
+            return p;
+        }
+
+        // ==========================================
+        // RIGHT: LOGIN / SIGNUP CARDS
+        // ==========================================
+        private void BuildRightPanel()
+        {
+            rightPanel = new Panel() { Dock = DockStyle.Fill, BackColor = PageGray, AutoScroll = true };
+
+            // ---------- LOGIN CARD ----------
+            loginPanel = CreateCard();
+            loginPanel.Controls.Add(CardTitle("Welcome back"));
+            loginPanel.Controls.Add(CardSubtitle("Sign in to your account to continue"));
+
+            loginPanel.Controls.Add(FieldLabel("Email address"));
+            txtLoginEmail = CreateTextBox(" you@example.com ");
+            loginPanel.Controls.Add(txtLoginEmail);
+
+            loginPanel.Controls.Add(FieldLabel("Password"));
+            txtLoginPassword = CreateTextBox("Enter your password", true);
+            loginPanel.Controls.Add(txtLoginPassword);
+
+            btnLogin = CreatePrimaryButton("Login");
+            btnLogin.Click += (s, e) => HandleLogin();
+            loginPanel.Controls.Add(btnLogin);
+
+            loginPanel.Controls.Add(CreateLink("Don't have an account? Sign up", ShowSignup));
+
+            // ---------- SIGNUP CARD ----------
+            signupPanel = CreateCard();
+            signupPanel.Controls.Add(CardTitle("Create your account"));
+            signupPanel.Controls.Add(CardSubtitle("Join EventKonnect in less than a minute"));
+
+            signupPanel.Controls.Add(FieldLabel("I am a"));
+            signupPanel.Controls.Add(CreateRoleRow());
+
+            signupPanel.Controls.Add(FieldLabel("Full name"));
+            txtSignName = CreateTextBox(" Kundwa Divine");
+            signupPanel.Controls.Add(txtSignName);
+
+            signupPanel.Controls.Add(FieldLabel("Email address"));
+            txtSignEmail = CreateTextBox("you@example.com");
+            signupPanel.Controls.Add(txtSignEmail);
+
+            signupPanel.Controls.Add(FieldLabel("Phone number"));
+            txtSignPhone = CreateTextBox(" ");
+            signupPanel.Controls.Add(txtSignPhone);
+
+            signupPanel.Controls.Add(FieldLabel("Password"));
+            txtSignPassword = CreateTextBox("Create a password", true);
+            signupPanel.Controls.Add(txtSignPassword);
+
+            chkTerms = new CheckBox() { Text = "I agree to the Terms and Conditions", Font = new Font("Segoe UI", 9), AutoSize = true, Margin = new Padding(0, 0, 0, 6) };
+            signupPanel.Controls.Add(chkTerms);
+
+            btnSignup = CreatePrimaryButton("Create Account");
+            btnSignup.Click += (s, e) => HandleSignup();
+            signupPanel.Controls.Add(btnSignup);
+
+            signupPanel.Controls.Add(CreateLink("Already have an account? Login", ShowLogin));
+
+            rightPanel.Controls.Add(loginPanel);
+            rightPanel.Controls.Add(signupPanel);
+            this.Controls.Add(rightPanel);
+
+            // Keep the cards centred when the window or card size changes
+            rightPanel.Resize += (s, e) => CenterCards();
+            loginPanel.SizeChanged += (s, e) => CenterCards();
+            signupPanel.SizeChanged += (s, e) => CenterCards();
+
+            SetRole("Vendor");
+            CenterCards();
+        }
+
+        private void CenterCards()
+        {
+            foreach (Panel card in new Panel[] { loginPanel, signupPanel })
+            {
+                int x = Math.Max(10, (rightPanel.ClientSize.Width - card.Width) / 2);
+                int y = Math.Max(10, (rightPanel.ClientSize.Height - card.Height) / 2);
+                card.Location = new Point(x, y);
+            }
+        }
+
+        // ==========================================
+        // ACTIONS
+        // ==========================================
+        private void HandleLogin()
+        {
+            string email = txtLoginEmail.Text.Trim();
+            string password = txtLoginPassword.Text;
+
+            if (email == "" || password == "")
+            {
+                MessageBox.Show("Please fill in all fields.", "Login", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string? role;
+            try { role = db.LoginUser(email, password); }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not reach the database. Is MySQL running?" + Environment.NewLine + Environment.NewLine + ex.Message, "Connection error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (role == "Vendor") OpenDashboard(new VendorForm(email));
+            else if (role == "Event Planner") OpenDashboard(new PlannerForm());
+            else MessageBox.Show("Invalid email or password.", "Login failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        private void OpenDashboard(Form dashboard)
+        {
+            txtLoginPassword.Clear();
+            dashboard.FormClosed += (s, e) => Application.Exit();
+            dashboard.Show();
+            this.Hide();
+        }
+
+        private void HandleSignup()
+        {
+            if (string.IsNullOrWhiteSpace(txtSignName.Text) || string.IsNullOrWhiteSpace(txtSignEmail.Text) ||
+                string.IsNullOrWhiteSpace(txtSignPhone.Text) || string.IsNullOrWhiteSpace(txtSignPassword.Text))
+            {
+                MessageBox.Show("Please fill in all fields.", "Sign up", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (!txtSignEmail.Text.Contains("@"))
+            {
+                MessageBox.Show("Please enter a valid email address like you@example.com.", "Sign up", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (!chkTerms.Checked)
+            {
+                MessageBox.Show("You must agree to the Terms and Conditions.", "Sign up", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            bool success = db.RegisterUser(txtSignName.Text.Trim(), txtSignEmail.Text.Trim(), txtSignPhone.Text.Trim(), txtSignPassword.Text, selectedRole);
+            if (success)
+            {
+                MessageBox.Show("Account created! You can now log in.", "Welcome", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                txtLoginEmail.Text = txtSignEmail.Text.Trim();
+                txtSignName.Clear(); txtSignEmail.Clear(); txtSignPhone.Clear(); txtSignPassword.Clear();
+                chkTerms.Checked = false;
+                ShowLogin();
+                txtLoginPassword.Focus();
+            }
+            else
+            {
+                MessageBox.Show("Could not create the account. This email might already be in use.", "Sign up failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
 
         private void ShowLogin()
         {
             signupPanel.Visible = false;
             loginPanel.Visible = true;
+            this.AcceptButton = btnLogin;   // Enter key submits
+            CenterCards();
         }
 
         private void ShowSignup()
         {
             loginPanel.Visible = false;
             signupPanel.Visible = true;
+            this.AcceptButton = btnSignup;
+            CenterCards();
         }
 
-        private Panel CreateStat(string value, string label, int x)
+        private void SetRole(string role)
         {
-            Panel p = new Panel() { Location = new Point(x, 15), Size = new Size(110, 50) };
-            Label v = new Label() { Text = value, ForeColor = Color.FromArgb(255, 193, 7), Font = new Font("Segoe UI", 16, FontStyle.Bold), Location = new Point(0, 0), AutoSize = true };
-            Label l = new Label() { Text = label, ForeColor = Color.Gray, Font = new Font("Segoe UI", 8), Location = new Point(0, 25), AutoSize = true };
-            p.Controls.Add(v); p.Controls.Add(l);
-            return p;
+            selectedRole = role;
+            StyleRoleButton(btnRoleVendor, role == "Vendor");
+            StyleRoleButton(btnRolePlanner, role == "Event Planner");
         }
 
-        private TextBox CreateTextBox(string placeholder, Point location, bool isPassword = false)
+        private void StyleRoleButton(Button b, bool selected)
         {
-            TextBox txt = new TextBox() { Location = location, Width = 350, Font = new Font("Segoe UI", 12), ForeColor = Color.Gray, Text = placeholder };
+            b.BackColor = selected ? Indigo : Color.White;
+            b.ForeColor = selected ? Color.White : Color.DimGray;
+            b.FlatAppearance.BorderColor = selected ? Indigo : BorderGray;
+        }
 
-            if (isPassword)
+        // ==========================================
+        // UI HELPERS
+        // ==========================================
+        private FlowLayoutPanel CreateCard()
+        {
+            FlowLayoutPanel card = new FlowLayoutPanel()
             {
-                txt.UseSystemPasswordChar = true;
-                txt.Text = "";
-                txt.ForeColor = Color.Black;
-            }
-
-            txt.GotFocus += (s, e) => {
-                if (txt.Text == placeholder)
-                {
-                    txt.Text = "";
-                    txt.ForeColor = Color.Black;
-                    if (isPassword) txt.UseSystemPasswordChar = true;
-                }
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                MinimumSize = new Size(FieldWidth + 80, 0),
+                Padding = new Padding(40, 32, 40, 32),
+                BackColor = Color.White
             };
-
-            txt.LostFocus += (s, e) => {
-                if (txt.Text == "")
-                {
-                    txt.Text = placeholder;
-                    txt.ForeColor = Color.Gray;
-                    if (isPassword) txt.UseSystemPasswordChar = false;
-                }
+            card.Paint += (s, e) =>
+            {
+                using (Pen pen = new Pen(BorderGray))
+                    e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
             };
+            return card;
+        }
 
-            return txt;
+        private Label CardTitle(string text)
+        {
+            return new Label() { Text = text, Font = new Font("Segoe UI", 18, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 0, 2) };
+        }
+
+        private Label CardSubtitle(string text)
+        {
+            return new Label() { Text = text, Font = new Font("Segoe UI", 10), ForeColor = Color.Gray, AutoSize = true, Margin = new Padding(2, 0, 0, 20) };
+        }
+
+        private Label FieldLabel(string text)
+        {
+            return new Label() { Text = text, Font = new Font("Segoe UI", 9, FontStyle.Bold), ForeColor = Color.DimGray, AutoSize = true, Margin = new Padding(0, 0, 0, 4) };
+        }
+
+        private TextBox CreateTextBox(string placeholder, bool isPassword = false)
+        {
+            return new TextBox()
+            {
+                Width = FieldWidth,
+                Font = new Font("Segoe UI", 12),
+                BorderStyle = BorderStyle.FixedSingle,
+                PlaceholderText = placeholder,
+                UseSystemPasswordChar = isPassword,
+                Margin = new Padding(0, 0, 0, 14)
+            };
+        }
+
+        private Button CreatePrimaryButton(string text)
+        {
+            Button btn = new Button() { Text = text, Width = FieldWidth, Height = 46, BackColor = Indigo, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 12, FontStyle.Bold), Cursor = Cursors.Hand, Margin = new Padding(0, 10, 0, 0) };
+            btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(80, 100, 180);
+            return btn;
+        }
+
+        // Two side-by-side buttons that act like a toggle
+        private Control CreateRoleRow()
+        {
+            TableLayoutPanel row = new TableLayoutPanel() { Width = FieldWidth, Height = 42, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 0, 0, 14) };
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            row.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            btnRoleVendor = CreateRoleButton("Vendor", new Padding(0, 0, 4, 0));
+            btnRolePlanner = CreateRoleButton("Event Planner", new Padding(4, 0, 0, 0));
+            btnRoleVendor.Click += (s, e) => SetRole("Vendor");
+            btnRolePlanner.Click += (s, e) => SetRole("Event Planner");
+
+            row.Controls.Add(btnRoleVendor, 0, 0);
+            row.Controls.Add(btnRolePlanner, 1, 0);
+            return row;
+        }
+
+        private Button CreateRoleButton(string text, Padding margin)
+        {
+            Button btn = new Button() { Text = text, Dock = DockStyle.Fill, Margin = margin, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10, FontStyle.Bold), Cursor = Cursors.Hand };
+            btn.FlatAppearance.BorderSize = 1;
+            return btn;
+        }
+
+        private Label CreateLink(string text, Action onClick)
+        {
+            Label link = new Label() { Text = text, ForeColor = Indigo, Font = new Font("Segoe UI", 10, FontStyle.Underline), AutoSize = false, Width = FieldWidth, Height = 28, TextAlign = ContentAlignment.MiddleCenter, Cursor = Cursors.Hand, Margin = new Padding(0, 14, 0, 0) };
+            link.Click += (s, e) => onClick();
+            return link;
         }
     }
 }

@@ -43,19 +43,30 @@ namespace Lab3Assignment.Controllers
             }
         }
 
+        // ==========================================
+        // VENDORS
+        // ==========================================
+
+        // Planner list of vendors. PriceRange is a ready-to-show text like "50,000 - 100,000 RWF".
         public DataTable GetVendors()
         {
             DataTable dt = new DataTable();
             using (MySqlConnection conn = new MySqlConnection(connString))
             {
-                string query = "SELECT * FROM Vendors";
+                string query = @"SELECT VendorId, Name, ServiceType,
+                                        CASE WHEN PriceMin = PriceMax
+                                             THEN CONCAT(FORMAT(PriceMin, 0), ' RWF')
+                                             ELSE CONCAT(FORMAT(PriceMin, 0), ' - ', FORMAT(PriceMax, 0), ' RWF')
+                                        END AS PriceRange,
+                                        Location
+                                 FROM Vendors";
                 MySqlDataAdapter da = new MySqlDataAdapter(query, conn);
                 da.Fill(dt);
             }
             return dt;
         }
 
-        // Gets a single vendor's profile to show on the dashboard
+        // Gets a single vendor's profile by ID
         public DataTable GetVendorProfile(int vendorId)
         {
             DataTable dt = new DataTable();
@@ -70,16 +81,55 @@ namespace Lab3Assignment.Controllers
             return dt;
         }
 
-        // Updates existing vendor profile
-        public void UpdateVendor(int id, string name, string service, decimal price, string location)
+        // Finds the profile that belongs to the logged-in vendor (empty table = no profile yet)
+        public DataTable GetVendorByEmail(string ownerEmail)
+        {
+            DataTable dt = new DataTable();
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                string query = "SELECT VendorId, Name, ServiceType, PriceMin, PriceMax, Location FROM Vendors WHERE OwnerEmail = @e LIMIT 1";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@e", ownerEmail);
+                MySqlDataAdapter da = new MySqlDataAdapter(cmd);
+                da.Fill(dt);
+            }
+            return dt;
+        }
+
+        // Creates a vendor profile for the logged-in vendor and returns the new VendorId.
+        // The old Price column is kept in sync with the minimum price.
+        public int CreateVendorProfile(string ownerEmail, string name, string service, decimal priceMin, decimal priceMax, string location)
         {
             using (MySqlConnection conn = new MySqlConnection(connString))
             {
-                string query = "UPDATE Vendors SET Name=@n, ServiceType=@s, Price=@p, Location=@l WHERE VendorId=@id";
+                string query = @"INSERT INTO Vendors (OwnerEmail, Name, ServiceType, Price, PriceMin, PriceMax, Location)
+                                 VALUES (@o, @n, @s, @min, @min, @max, @l)";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@o", ownerEmail);
+                cmd.Parameters.AddWithValue("@n", name);
+                cmd.Parameters.AddWithValue("@s", service);
+                cmd.Parameters.AddWithValue("@min", priceMin);
+                cmd.Parameters.AddWithValue("@max", priceMax);
+                cmd.Parameters.AddWithValue("@l", location);
+                conn.Open();
+                cmd.ExecuteNonQuery();
+                return (int)cmd.LastInsertedId;
+            }
+        }
+
+        // Updates existing vendor profile
+        public void UpdateVendor(int id, string name, string service, decimal priceMin, decimal priceMax, string location)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                string query = @"UPDATE Vendors
+                                 SET Name=@n, ServiceType=@s, Price=@min, PriceMin=@min, PriceMax=@max, Location=@l
+                                 WHERE VendorId=@id";
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@n", name);
                 cmd.Parameters.AddWithValue("@s", service);
-                cmd.Parameters.AddWithValue("@p", price);
+                cmd.Parameters.AddWithValue("@min", priceMin);
+                cmd.Parameters.AddWithValue("@max", priceMax);
                 cmd.Parameters.AddWithValue("@l", location);
                 cmd.Parameters.AddWithValue("@id", id);
                 conn.Open();
@@ -87,6 +137,9 @@ namespace Lab3Assignment.Controllers
             }
         }
 
+        // ==========================================
+        // EVENTS & GUESTS
+        // ==========================================
         public void AddEvent(string title, DateTime date, decimal budget)
         {
             using (MySqlConnection conn = new MySqlConnection(connString))
@@ -128,14 +181,17 @@ namespace Lab3Assignment.Controllers
             }
         }
 
-        // --- BOOKING METHODS ---
+        // ==========================================
+        // BOOKINGS
+        // ==========================================
 
-        // Updated to include the message (phone number / notes)
+        // PriceOffered now comes from the event's budget instead of a hardcoded 1000
         public void CreateBooking(int vendorId, int eventId, string message)
         {
             using (MySqlConnection conn = new MySqlConnection(connString))
             {
-                string query = "INSERT INTO Bookings (VendorId, EventId, PriceOffered, Status, Message) VALUES (@v, @e, 1000, 'Pending', @msg)";
+                string query = @"INSERT INTO Bookings (VendorId, EventId, PriceOffered, Status, Message)
+                                 VALUES (@v, @e, (SELECT Budget FROM Events WHERE EventId = @e), 'Pending', @msg)";
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@v", vendorId);
                 cmd.Parameters.AddWithValue("@e", eventId);
@@ -145,15 +201,18 @@ namespace Lab3Assignment.Controllers
             }
         }
 
+        // Vendor's incoming requests, with the planner's message and the vendor's own reply
         public DataTable GetVendorBookings(int vendorId)
         {
             DataTable dt = new DataTable();
             using (MySqlConnection conn = new MySqlConnection(connString))
             {
-                string query = @"SELECT b.BookingId, e.Title as EventTitle, b.Message, b.Status 
-                                 FROM Bookings b 
-                                 JOIN Events e ON b.EventId = e.EventId 
-                                 WHERE b.VendorId = @v";
+                string query = @"SELECT b.BookingId, e.Title AS EventTitle, e.EventDate, e.Budget,
+                                        b.Message, b.Status, b.VendorResponse
+                                 FROM Bookings b
+                                 JOIN Events e ON b.EventId = e.EventId
+                                 WHERE b.VendorId = @v
+                                 ORDER BY b.BookingId DESC";
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@v", vendorId);
                 MySqlDataAdapter da = new MySqlDataAdapter(cmd);
@@ -162,19 +221,37 @@ namespace Lab3Assignment.Controllers
             return dt;
         }
 
+        // Planner's bookings, including what the vendor replied
         public DataTable GetPlannerBookings()
         {
             DataTable dt = new DataTable();
             using (MySqlConnection conn = new MySqlConnection(connString))
             {
-                string query = @"SELECT b.BookingId, e.Title as EventTitle, v.Name as VendorName, b.Status 
-                                 FROM Bookings b 
-                                 JOIN Events e ON b.EventId = e.EventId 
-                                 JOIN Vendors v ON b.VendorId = v.VendorId";
+                string query = @"SELECT b.BookingId, e.Title AS EventTitle, v.Name AS VendorName,
+                                        b.Status, b.Message, b.VendorResponse
+                                 FROM Bookings b
+                                 JOIN Events e ON b.EventId = e.EventId
+                                 JOIN Vendors v ON b.VendorId = v.VendorId
+                                 ORDER BY b.BookingId DESC";
                 MySqlDataAdapter da = new MySqlDataAdapter(query, conn);
                 da.Fill(dt);
             }
             return dt;
+        }
+
+        // Vendor accepts or rejects and leaves a note for the planner
+        public void RespondToBooking(int bookingId, string status, string response)
+        {
+            using (MySqlConnection conn = new MySqlConnection(connString))
+            {
+                string query = "UPDATE Bookings SET Status = @s, VendorResponse = @r WHERE BookingId = @id";
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@s", status);
+                cmd.Parameters.AddWithValue("@r", response);
+                cmd.Parameters.AddWithValue("@id", bookingId);
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
         }
 
         public void UpdateBookingStatus(int bookingId, string status)
